@@ -2,6 +2,8 @@ package webserver;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,9 +26,14 @@ public class WebServer {
 
             // 클라이언트가 연결될때까지 대기한다.
             Socket connection;
-            while ((connection = listenSocket.accept()) != null) {
-                Thread thread = new Thread(new RequestHandler(connection));
-                thread.start();
+            // 1. 일꾼 8명을 미리 뽑아둔 스레드 풀 생성
+            ExecutorService executor = Executors.newFixedThreadPool(200); // 스프링 부트에서 쓰레드풀에서 관리하는것은 200이 디폴트값임
+//
+//            while ((connection = listenSocket.accept()) != null) {
+//                Thread thread = new Thread(new RequestHandler(connection));
+//                thread.start();
+            while ((connection = listenSocket.accept()) != null){
+                executor.execute(new RequestHandler(connection));
             }
         }
     }

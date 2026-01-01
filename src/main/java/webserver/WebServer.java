@@ -49,7 +49,7 @@ public class WebServer {
         } catch (Exception e) {
             logger.error("서버 실행 중 에러 발생: {}", e.getMessage());
         } finally {
-            // 4. [보너스 점수 포인트] 서버 종료 시 스레드 풀 안전하게 닫기
+            // 4.  서버 종료 시 스레드 풀 안전하게 닫기
             executor.shutdown();
             try {
                 if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {

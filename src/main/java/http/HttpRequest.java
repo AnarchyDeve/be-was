@@ -1,5 +1,8 @@
 package http;
 
+import db.Database;
+import model.User;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,7 +40,32 @@ public class HttpRequest {
 
             String[] tokens = line.split(" ");
             this.method = tokens[0]; // GET POST 등 어떠한 매서드인지 아는거임
-            this.path = tokens[1]; // path를 이야기함
+
+            // ... 기존 코드 생략 ...
+
+            String fullPath = tokens[1]; // 예: /create?userId=javajigi&...
+            if (fullPath.contains("?")) {
+                String[] parts = fullPath.split("\\?"); // ?를 기준으로 분리
+                this.path = parts[0];                   // /create 만 저장
+                String queryString = parts[1];          // userId=javajigi&... 부분
+
+                // 여기서 Map으로 변환하는 로직을 수행 (주석으로 말씀하신 내용)
+                Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
+
+                // 만약 path가 "/create" 라면 데이터베이스에 저장하는 로직으로 연결!
+                if ("/create".equals(this.path)) {
+                    User user = new User(
+                            params.get("userId"),
+                            params.get("password"),
+                            params.get("name"),
+                            params.get("email")
+                    );
+                    Database.addUser(user); // 말씀하신 Database 클래스에 저장
+                }
+            } else {
+                this.path = fullPath;
+            }
+// ... 헤더 읽기 로직 시작 ...
 
             while (!(line = br.readLine()).equals("")){
                 String[] headerTokens = line.split(": ");

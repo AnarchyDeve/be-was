@@ -44,7 +44,7 @@ public class WebServer {
             Socket connection;
             while ((connection = listenSocket.accept()) != null) {
                 // 3. 일꾼에게 작업 요청
-                executor.execute(new RequestHandler(connection));
+                executor.execute(new DispatcherServlet(connection));
             }
         } catch (Exception e) {
             logger.error("서버 실행 중 에러 발생: {}", e.getMessage());

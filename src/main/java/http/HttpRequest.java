@@ -14,6 +14,7 @@ import java.util.Stack;
 public class HttpRequest {
     private String method;
     private String path;
+    private Map<String, String> params = new HashMap<>();
     private Map<String, String> headers = new HashMap<>();
     private String body;
 
@@ -86,5 +87,9 @@ public class HttpRequest {
         }
     }
 
+
+    public String getParameter(String name) {
+        return params.get(name);
+    }
 
 }

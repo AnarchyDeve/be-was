@@ -13,7 +13,7 @@ public class HandlerMapping {
 
     static {
         // 1. 회원가입 컨트롤러 등록
-        mappings.put("/create", new UserCreateController());
+        mappings.put("/user/create", new UserCreateController());
 
         // 2. 기타 정적 페이지 전용 컨트롤러 등록 (필요 시 추가)
         // mappings.put("/login", new LoginController());

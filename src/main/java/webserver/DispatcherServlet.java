@@ -6,6 +6,7 @@ import controller.HandlerMapping;
 import controller.ResourceController;
 import http.HttpRequest;
 import http.HttpResponse;
+import http.HttpStatus;
 import view.MyView;
 import view.ViewResolver;
 
@@ -48,7 +49,7 @@ public class DispatcherServlet implements Runnable {
 
                 // 2. HttpResponse 객체에 리다이렉트 명령 수행 (302 상태코드 전송)
                 // 이 메서드는 내부적으로 response.sendRedirect() 같은 로직을 호출해야 합니다.
-                response.sendRedirect(redirectPath);
+                response.sendRedirect(HttpStatus.FOUND,redirectPath);
 
                 return; // 리다이렉트는 응답이 끝난 것이므로 아래 렌더링 로직을 타지 않게 종료
             }

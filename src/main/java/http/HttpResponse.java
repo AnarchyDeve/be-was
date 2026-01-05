@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +80,7 @@ public class HttpResponse {
         if (lastDotIndex == -1) return "";
         return path.substring(lastDotIndex + 1).toLowerCase();
     }
+
     public void sendRedirect(String path) {
         try {
             // 1. 상태 코드를 302 Found로 설정

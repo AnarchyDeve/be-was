@@ -15,11 +15,12 @@ import java.io.OutputStream;
 import java.util.Collection;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 class UserCreateControllerTest {
     private UserCreateController controller;
 
     @BeforeEach
-    void  setUp(){
+    void setUp() {
         controller = new UserCreateController();
     }
 

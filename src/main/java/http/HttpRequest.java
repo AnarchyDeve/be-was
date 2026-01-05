@@ -14,53 +14,83 @@ public class HttpRequest {
     public HttpRequest(InputStream in) {
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-            String line = br.readLine(); // Request Line: "GET /user/create?userId=... HTTP/1.1"
-
+            String line = br.readLine();
             if (line == null) return;
 
-            // 1. 리퀘스트 라인 분리
+            // 1. Request Line 분리
             String[] tokens = line.split(" ");
             this.method = tokens[0];
-            String url = tokens[1]; // "/user/create?userId=aaaaa&name=11111..."
+            String url = tokens[1];
 
-            // 2. 경로(path)와 파라미터(params) 분리 처리
-            parseUrl(url);
+            // 2. Header 읽기 및 Content-Length 추출 (대소문자 무시)
+            int contentLength = 0;
+            while ((line = br.readLine()) != null && !line.equals("")) {
+                // 헤더 이름을 소문자로 변환하여 비교 (Content-Length, content-length 등 대응)
+                String lowerLine = line.toLowerCase();
+                if (lowerLine.startsWith("content-length:")) {
+                    contentLength = Integer.parseInt(line.split(":")[1].trim());
+                }
+            }
+
+            // 3. 데이터 파싱 (GET vs POST)
+            if ("GET".equals(method)) {
+                parseGetRequest(url);
+            } else if ("POST".equals(method)) {
+                this.path = url;
+                parsePostRequest(br, contentLength);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void parseUrl(String url) {
+    private void parseGetRequest(String url) {
         if (url.contains("?")) {
-            // ?를 기준으로 쪼갬 (메타문자이므로 \\? 사용)
-            String[] parts = url.split("\\?");
-            this.path = parts[0];       // "/user/create"
-            String queryString = parts[1]; // "userId=aaaaa&name=11111&password=222222"
-
-            // 쿼리 스트링을 &와 = 기준으로 쪼개서 맵에 저장
+            int index = url.indexOf("?");
+            this.path = url.substring(0, index);
+            String queryString = url.substring(index + 1);
             parseParameters(queryString);
         } else {
             this.path = url;
         }
     }
 
-    private void parseParameters(String queryString) {
-        String[] pairs = queryString.split("&");
-        for (String pair : pairs) {
-            String[] keyValue = pair.split("=");
-            String key = keyValue[0];
-            String value = (keyValue.length > 1) ? keyValue[1] : "";
-            params.put(key, value); // params 맵에 저장
+    private void parsePostRequest(BufferedReader br, int contentLength) throws Exception {
+        if (contentLength > 0) {
+            char[] body = new char[contentLength];
+            // read()는 읽은 문자 수를 반환하며, 실제 바디를 body 배열에 채움
+            int readCount = br.read(body, 0, contentLength);
+            if (readCount == contentLength) {
+                String bodyData = new String(body);
+                parseParameters(bodyData);
+            }
         }
     }
 
-    // 컨트롤러가 호출할 메서드
+    private void parseParameters(String queryString) {
+        if (queryString == null || queryString.isEmpty()) return;
+
+        String[] pairs = queryString.split("&");
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=");
+            if (keyValue.length >= 2) {
+                params.put(keyValue[0], keyValue[1]);
+            } else if (keyValue.length == 1) {
+                params.put(keyValue[0], "");
+            }
+        }
+    }
+
     public String getParameter(String name) {
         return params.get(name);
     }
 
     public String getPath() {
         return path;
+    }
+
+    public String getMethod() {
+        return method;
     }
 }

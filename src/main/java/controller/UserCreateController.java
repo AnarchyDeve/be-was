@@ -30,6 +30,8 @@ public class UserCreateController implements Controller {
 
         // 3. 작업 완료 후 이동할 논리적인 뷰 이름을 반환합니다.
         // 회원가입 성공 후에는 메인 페이지(index.html)로 이동하도록 설계합니다.
-        return "/index.html";
+        // 포워드 방식을 리다이렉트 방식으로 바꿔봄
+        // return "/index.html";
+        return "redirect:/index.html";
     }
 }

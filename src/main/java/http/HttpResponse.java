@@ -79,4 +79,25 @@ public class HttpResponse {
         if (lastDotIndex == -1) return "";
         return path.substring(lastDotIndex + 1).toLowerCase();
     }
+    public void sendRedirect(String path) {
+        try {
+            // 1. 상태 코드를 302 Found로 설정
+            // HTTP 응답 라인: HTTP/1.1 302 Found
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+
+            // 2. Header에 "Location" 추가
+            // 브라우저에게 어디로 다시 접속할지 알려주는 핵심 헤더입니다.
+            dos.writeBytes("Location: " + path + "\r\n");
+
+            // 3. 응답 헤더의 끝을 알리는 빈 줄 전송
+            dos.writeBytes("\r\n");
+
+            // 4. 즉시 전송을 위해 플러시
+            dos.flush();
+
+            logger.debug("리다이렉트 응답 전송 완료: {}", path);
+        } catch (IOException e) {
+            logger.error("리다이렉트 처리 중 오류 발생: {}", e.getMessage());
+        }
+    }
 }

@@ -42,7 +42,16 @@ public class DispatcherServlet implements Runnable {
 
             // 4. 어댑터를 통해 핸들러 실행 및 뷰 이름(경로) 획득
             String viewName = adapter.handle(request, response, handler);
+            if (viewName.startsWith("redirect:")) {
+                // 1. "redirect:" 접두사를 제거하여 실제 이동할 주소 추출 (예: "/index.html")
+                String redirectPath = viewName.substring("redirect:".length());
 
+                // 2. HttpResponse 객체에 리다이렉트 명령 수행 (302 상태코드 전송)
+                // 이 메서드는 내부적으로 response.sendRedirect() 같은 로직을 호출해야 합니다.
+                response.sendRedirect(redirectPath);
+
+                return; // 리다이렉트는 응답이 끝난 것이므로 아래 렌더링 로직을 타지 않게 종료
+            }
             // 5. ViewResolver를 통해 MyView 객체 획득 (물리 경로 해결)
             ViewResolver viewResolver = new ViewResolver();
             MyView view = viewResolver.resolve(viewName);

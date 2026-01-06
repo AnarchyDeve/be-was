@@ -18,6 +18,11 @@ public enum MimeType {
         this.contentType = contentType;
     }
 
-    public String getExtension() { return extension; }
-    public String getContentType() { return contentType; }
+    public String getExtension() {
+        return extension;
+    }
+
+    public String getContentType() {
+        return contentType;
+    }
 }

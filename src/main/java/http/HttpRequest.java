@@ -1,90 +1,96 @@
 package http;
 
-import db.Database;
-import model.User;
-
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Stack;
 
 public class HttpRequest {
     private String method;
     private String path;
-    private Map<String, String> headers = new HashMap<>();
-    private String body;
+    private Map<String, String> params = new HashMap<>();
 
-    public String getMethod() {
-        return method;
+    public HttpRequest(InputStream in) {
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+            String line = br.readLine();
+            if (line == null) return;
+
+            // 1. Request Line 분리
+            String[] tokens = line.split(" ");
+            this.method = tokens[0];
+            String url = tokens[1];
+
+            // 2. Header 읽기 및 Content-Length 추출 (대소문자 무시)
+            int contentLength = 0;
+            while ((line = br.readLine()) != null && !line.equals("")) {
+                // 헤더 이름을 소문자로 변환하여 비교 (Content-Length, content-length 등 대응)
+                String lowerLine = line.toLowerCase();
+                if (lowerLine.startsWith("content-length:")) {
+                    contentLength = Integer.parseInt(line.split(":")[1].trim());
+                }
+            }
+
+            // 3. 데이터 파싱 (GET vs POST)
+            if ("GET".equals(method)) {
+                parseGetRequest(url);
+            } else if ("POST".equals(method)) {
+                this.path = url;
+                parsePostRequest(br, contentLength);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void parseGetRequest(String url) {
+        if (url.contains("?")) {
+            int index = url.indexOf("?");
+            this.path = url.substring(0, index);
+            String queryString = url.substring(index + 1);
+            parseParameters(queryString);
+        } else {
+            this.path = url;
+        }
+    }
+
+    private void parsePostRequest(BufferedReader br, int contentLength) throws Exception {
+        if (contentLength > 0) {
+            char[] body = new char[contentLength];
+            // read()는 읽은 문자 수를 반환하며, 실제 바디를 body 배열에 채움
+            int readCount = br.read(body, 0, contentLength);
+            if (readCount == contentLength) {
+                String bodyData = new String(body);
+                parseParameters(bodyData);
+            }
+        }
+    }
+
+    private void parseParameters(String queryString) {
+        if (queryString == null || queryString.isEmpty()) return;
+
+        String[] pairs = queryString.split("&");
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=");
+            if (keyValue.length >= 2) {
+                params.put(keyValue[0], keyValue[1]);
+            } else if (keyValue.length == 1) {
+                params.put(keyValue[0], "");
+            }
+        }
+    }
+
+    public String getParameter(String name) {
+        return params.get(name);
     }
 
     public String getPath() {
         return path;
     }
 
-    public Map<String, String> getHeaders() {
-        return headers;
+    public String getMethod() {
+        return method;
     }
-
-    public HttpRequest(InputStream in){
-        try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-
-            String line = br.readLine();
-            if( line == null) return;
-
-            int contentLength = 0; // 어디까지 읽어야 할지를 써놔야하기 때문에 중요함.
-
-            String[] tokens = line.split(" ");
-            this.method = tokens[0]; // GET POST 등 어떠한 매서드인지 아는거임
-
-            // ... 기존 코드 생략 ...
-
-            String fullPath = tokens[1]; // 예: /create?userId=javajigi&...
-            if (fullPath.contains("?")) {
-                String[] parts = fullPath.split("\\?"); // ?를 기준으로 분리
-                this.path = parts[0];                   // /create 만 저장
-                String queryString = parts[1];          // userId=javajigi&... 부분
-
-                // 여기서 Map으로 변환하는 로직을 수행 (주석으로 말씀하신 내용)
-                Map<String, String> params = HttpRequestUtils.parseQueryString(queryString);
-
-                // 만약 path가 "/create" 라면 데이터베이스에 저장하는 로직으로 연결!
-                if ("/create".equals(this.path)) {
-                    User user = new User(
-                            params.get("userId"),
-                            params.get("password"),
-                            params.get("name"),
-                            params.get("email")
-                    );
-                    Database.addUser(user); // 말씀하신 Database 클래스에 저장
-                }
-            } else {
-                this.path = fullPath;
-            }
-// ... 헤더 읽기 로직 시작 ...
-
-            while (!(line = br.readLine()).equals("")){
-                String[] headerTokens = line.split(": ");
-                // : 을 기준으로 나누면
-                if (headerTokens.length == 2){
-                    headers.put(headerTokens[0], headerTokens[1]);
-                }
-            }
-
-            if ("POST".equals(method) && headers.containsKey("Content-Length")){
-                int length = Integer.parseInt(headers.get("Content-Length"));
-                char[] buffer = new char[length];
-                br.read(buffer, 0, length);
-                this.body = new String(buffer);
-             }
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-
 }

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,4 +80,11 @@ public class HttpResponse {
         if (lastDotIndex == -1) return "";
         return path.substring(lastDotIndex + 1).toLowerCase();
     }
+
+    public void sendRedirect(HttpStatus found, String redirectPath) {
+        setStatus(HttpStatus.FOUND);      // 302 설정
+        addHeader("Location", redirectPath); // Location 헤더 추가
+        send(null);                       // 바디 없이 전송
+    }
+
 }

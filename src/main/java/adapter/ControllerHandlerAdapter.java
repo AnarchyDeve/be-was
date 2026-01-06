@@ -4,7 +4,7 @@ import controller.Controller;
 import http.HttpRequest;
 import http.HttpResponse;
 
-public class ControllerHandlerAdapter implements HandlerAdapter{
+public class ControllerHandlerAdapter implements HandlerAdapter {
 
     @Override
     public boolean supports(Object handler) {

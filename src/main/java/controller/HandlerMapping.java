@@ -18,6 +18,7 @@ public class HandlerMapping {
 
         // 2. 기타 정적 페이지 전용 컨트롤러 등록 (필요 시 추가)
         // mappings.put("/login", new LoginController());
+        mappings.put("/user/login", new LoginController());
 
         logger.info("HandlerMapping 초기화 완료: {}개의 컨트롤러 등록됨", mappings.size());
     }

@@ -6,6 +6,7 @@ import controller.HandlerMapping;
 import controller.ResourceController;
 import http.HttpRequest;
 import http.HttpResponse;
+import http.HttpSessions;
 import http.HttpStatus;
 import view.MyView;
 import view.ViewResolver;
@@ -28,6 +29,7 @@ public class DispatcherServlet implements Runnable {
     @Override
     public void run() {
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
+            HttpSessions.clearInvalidSessions();
             // 1. 요청/응답 객체 생성
             HttpRequest request = new HttpRequest(in);
             HttpResponse response = new HttpResponse(out);

@@ -1,10 +1,14 @@
 package http;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class HttpSessions {
+    // 1. 로거 선언 (클래스 레벨)
+    private static final Logger logger = LoggerFactory.getLogger(HttpSessions.class);
+
     private static Map<String, HttpSession> sessions = new ConcurrentHashMap<>();
     private static final int TIMEOUT = 30;
 
@@ -14,6 +18,7 @@ public class HttpSessions {
 
     public static void addSession(HttpSession session) {
         sessions.put(session.getId(), session);
+        logger.info("새 세션 등록 완료: ID = {}", session.getId());
     }
 
     public static void remove(String id) {
@@ -21,32 +26,33 @@ public class HttpSessions {
     }
 
     public static void clearInvalidSessions() {
-        // 1. 청소 시작 전 상태 확인
         int beforeSize = sessions.size();
-        if (beforeSize == 0) return; // 청소할 게 없으면 그냥 나감 (로그 공해 방지)
 
-        System.out.println("\n========== 세션 청소기 작동 ==========");
-        System.out.println("[청소 전] 현재 보관 중인 세션 수: " + beforeSize);
+        // [중요] 세션이 0개여도 호출은 되었다는 로그를 남겨야 32라인 블래킹 여부를 압니다.
+        if (beforeSize == 0) {
+            logger.debug("세션 청소기 호출됨: 현재 활성화된 세션 없음.");
+            return;
+        }
 
+        logger.info("========== 세션 청소기 작동 (전체 세션: {}) ==========", beforeSize);
         long currentTime = System.currentTimeMillis();
 
-        // 2. 실제 삭제 로직 (30초 기준)
+        // 실제 삭제 로직
         sessions.entrySet().removeIf(entry -> {
             HttpSessionImpl session = (HttpSessionImpl) entry.getValue();
             long idleTime = (currentTime - session.getLastAccessedTime()) / 1000;
 
-            System.out.println("-> ID: " + session.getId() + " | 경과: " + idleTime + "초");
+            logger.info("-> ID: {} | 경과: {}초", session.getId(), idleTime);
 
-            if (idleTime > 30) {
-                System.out.println("   [!] 만료됨: 이 세션을 삭제합니다.");
+            if (idleTime > TIMEOUT) {
+                logger.warn("   [!] 만료됨: 세션을 삭제합니다. (ID: {})", session.getId());
                 return true;
             }
             return false;
         });
 
-        // 3. 청소 후 상태 확인
         int afterSize = sessions.size();
-        System.out.println("[청소 후] 남은 세션 수: " + afterSize);
-        System.out.println("====================================\n");
+        logger.info("[청소 후] 남은 세션 수: {}", afterSize);
+        logger.info("================================================");
     }
 }

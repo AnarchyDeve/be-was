@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 public class HttpSessions {
     private static final Logger logger = LoggerFactory.getLogger(HttpSessions.class);
 
-    // [구조 변경]
     // 1. UserID로 세션 객체를 관리 (1인 1세션 보장용)
     private static Map<String, HttpSession> sessions = new ConcurrentHashMap<>();
     // 2. 랜덤 SID(UUID)로 UserID를 찾기 위한 역방향 맵 (로그인 유지 확인용)
@@ -96,14 +95,14 @@ public class HttpSessions {
             return false;
         });
 
-        // 2. 생존 현황 로그 (디버깅용)
+        // 2. 생존 현황 로그
         int activeCount = sessions.size();
         if (activeCount > 0) {
-            logger.debug(" [세션 생존 현황] 총 {}개 활성 중", activeCount);
+            logger.debug("[세션 생존 현황] 총 {}개 활성 중", activeCount);
             sessions.forEach((userId, session) -> {
                 long idleTimeSec = (currentTime - session.getLastAccessedTime()) / 1000;
                 long remainingTimeSec = (SESSION_TIMEOUT / 1000) - idleTimeSec;
-                logger.debug("   [생존] ID: {} (SID: {}) | 만료까지: {}초 남음",
+                logger.debug("[생존] ID: {} (SID: {}) | 만료까지: {}초 남음",
                         userId, session.getId(), remainingTimeSec);
             });
             logger.debug("--------------------------------------------------");

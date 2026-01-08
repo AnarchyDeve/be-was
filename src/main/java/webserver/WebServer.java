@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WebServer {
-    private static final Logger logger = LoggerFactory.getLogger(WebServer.class);
+    static final Logger logger = LoggerFactory.getLogger(WebServer.class);
     private static final int DEFAULT_PORT = 8080;
 
     // 1. 설정을 상수로 관리 (나중에 수정하기 편함)

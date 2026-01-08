@@ -1,23 +1,22 @@
 package http;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class HttpSessionImpl implements  HttpSession {
-        private  String id;
-        private long lastAccessedTime;
-        private Map<String, Object> attributes = new HashMap<>();
+public class HttpSessionImpl implements HttpSession {
+    private String id;
+    private long lastAccessedTime;
+    private Map<String, Object> attributes = new ConcurrentHashMap<>();
 
-        public HttpSessionImpl(String id){
-            this.id = id;
-            this.lastAccessedTime = System.currentTimeMillis();
-        }
+    public HttpSessionImpl(String id) {
+        this.id = id;
+        this.lastAccessedTime = System.currentTimeMillis();
+    }
 
     @Override
     public String getId() {
-        return "id";
+        return this.id; // User ID 반환
     }
-
 
     @Override
     public void setAttribute(String name, Object value) {

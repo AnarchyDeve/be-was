@@ -7,9 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class HttpRequest {
-    private String method;
-    private String path;
+    private RequestLine requestLine;   // [부품 1]
+    private HttpCookies httpCookies;   // [부품 2]
+
     private Map<String, String> params = new HashMap<>();
+    private HttpSession session;       // 연결된 세션
 
     public HttpRequest(InputStream in) {
         try {
@@ -17,80 +19,61 @@ public class HttpRequest {
             String line = br.readLine();
             if (line == null) return;
 
-            // 1. Request Line 분리
-            String[] tokens = line.split(" ");
-            this.method = tokens[0];
-            String url = tokens[1];
+            // 1. 첫 줄 처리는 RequestLine에게 위임
+            this.requestLine = new RequestLine(line);
+            this.params.putAll(requestLine.getParams()); // GET 파라미터 가져오기
 
-            // 2. Header 읽기 및 Content-Length 추출 (대소문자 무시)
+            // 2. 헤더 처리
             int contentLength = 0;
             while ((line = br.readLine()) != null && !line.equals("")) {
-                // 헤더 이름을 소문자로 변환하여 비교 (Content-Length, content-length 등 대응)
                 String lowerLine = line.toLowerCase();
+
                 if (lowerLine.startsWith("content-length:")) {
                     contentLength = Integer.parseInt(line.split(":")[1].trim());
                 }
+
+                // 쿠키 처리는 HttpCookies에게 위임
+                if (lowerLine.startsWith("cookie:")) {
+                    this.httpCookies = new HttpCookies(line.split(":")[1].trim());
+                }
             }
 
-            // 3. 데이터 파싱 (GET vs POST)
-            if ("GET".equals(method)) {
-                parseGetRequest(url);
-            } else if ("POST".equals(method)) {
-                this.path = url;
-                parsePostRequest(br, contentLength);
+            // 3. POST Body 처리
+            if ("POST".equals(getMethod()) && contentLength > 0) {
+                char[] body = new char[contentLength];
+                br.read(body, 0, contentLength);
+                parseBodyParameters(new String(body));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
-    private void parseGetRequest(String url) {
-        if (url.contains("?")) {
-            int index = url.indexOf("?");
-            this.path = url.substring(0, index);
-            String queryString = url.substring(index + 1);
-            parseParameters(queryString);
-        } else {
-            this.path = url;
-        }
-    }
-
-    private void parsePostRequest(BufferedReader br, int contentLength) throws Exception {
-        if (contentLength > 0) {
-            char[] body = new char[contentLength];
-            // read()는 읽은 문자 수를 반환하며, 실제 바디를 body 배열에 채움
-            int readCount = br.read(body, 0, contentLength);
-            if (readCount == contentLength) {
-                String bodyData = new String(body);
-                parseParameters(bodyData);
-            }
-        }
-    }
-
-    private void parseParameters(String queryString) {
-        if (queryString == null || queryString.isEmpty()) return;
-
-        String[] pairs = queryString.split("&");
+    private void parseBodyParameters(String bodyData) {
+        String[] pairs = bodyData.split("&");
         for (String pair : pairs) {
             String[] keyValue = pair.split("=");
             if (keyValue.length >= 2) {
                 params.put(keyValue[0], keyValue[1]);
-            } else if (keyValue.length == 1) {
-                params.put(keyValue[0], "");
             }
         }
     }
 
-    public String getParameter(String name) {
-        return params.get(name);
+    // --- Getter & Setter ---
+
+    public String getMethod() {
+        return requestLine.getMethod();
     }
 
     public String getPath() {
-        return path;
+        return requestLine.getPath();
     }
 
-    public String getMethod() {
-        return method;
+    public String getCookie(String name) {
+        if (httpCookies == null) return null;
+        return httpCookies.getCookie(name);
     }
+
+    public String getParameter(String name) { return params.get(name); }
+    public void setSession(HttpSession session) { this.session = session; }
+    public HttpSession getSession() { return session; }
 }

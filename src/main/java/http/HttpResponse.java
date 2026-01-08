@@ -13,24 +13,28 @@ public class HttpResponse {
     private static final Logger logger = LoggerFactory.getLogger(HttpResponse.class);
 
     private DataOutputStream dos;
-    private HttpStatus status;
+    private HttpStatus status = HttpStatus.OK; // 기본값 200 설정
     private Map<String, String> headers = new HashMap<>();
 
     public HttpResponse(OutputStream out) {
         this.dos = new DataOutputStream(out);
     }
 
-    // 1. 상태 코드 설정 (Enum 사용)
+    // [추가] 컨트롤러에서 가공된 바디(HTML 문자열 등)를 직접 보낼 때 사용
+    public void forwardBody(byte[] body) {
+        setStatus(HttpStatus.OK);
+        addHeader("Content-Type", "text/html;charset=utf-8"); // HTML 전용 설정
+        send(body);
+    }
+
     public void setStatus(HttpStatus status) {
         this.status = status;
     }
 
-    // 2. 헤더 추가
     public void addHeader(String key, String value) {
         headers.put(key, value);
     }
 
-    // 3. Content-Type 자동 설정 로직 (과거 방식으로 MimeType Enum 순회)
     public void setContentType(String path) {
         String extension = getFileExtension(path);
         String contentType = MimeType.DEFAULT.getContentType();
@@ -44,26 +48,24 @@ public class HttpResponse {
         addHeader("Content-Type", contentType);
     }
 
-    // 4. 진짜로 브라우저에 전송하는 메서드
     public void send(byte[] body) {
         try {
-            // [Step 1] Status Line 전송: HTTP/1.1 200 OK
+            // [Step 1] Status Line
             dos.writeBytes("HTTP/1.1 " + status.getCode() + " " + status.getMessage() + "\r\n");
 
-            // [Step 2] Headers 전송
-            for (String key : headers.keySet()) {
-                dos.writeBytes(key + ": " + headers.get(key) + "\r\n");
+            // [Step 2] Headers
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                dos.writeBytes(entry.getKey() + ": " + entry.getValue() + "\r\n");
             }
 
-            // 바디가 있다면 Content-Length는 필수
             if (body != null) {
                 dos.writeBytes("Content-Length: " + body.length + "\r\n");
             }
 
-            // [Step 3] 빈 줄 전송 (헤더의 끝 알림)
+            // [Step 3] Empty Line
             dos.writeBytes("\r\n");
 
-            // [Step 4] Body 전송
+            // [Step 4] Body
             if (body != null) {
                 dos.write(body, 0, body.length);
             }
@@ -74,7 +76,6 @@ public class HttpResponse {
         }
     }
 
-    // 확장자 추출 헬퍼 메서드
     private String getFileExtension(String path) {
         int lastDotIndex = path.lastIndexOf(".");
         if (lastDotIndex == -1) return "";
@@ -82,9 +83,8 @@ public class HttpResponse {
     }
 
     public void sendRedirect(HttpStatus found, String redirectPath) {
-        setStatus(HttpStatus.FOUND);      // 302 설정
-        addHeader("Location", redirectPath); // Location 헤더 추가
-        send(null);                       // 바디 없이 전송
+        setStatus(found);
+        addHeader("Location", redirectPath);
+        send(null);
     }
-
 }

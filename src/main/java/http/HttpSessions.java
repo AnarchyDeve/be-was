@@ -61,7 +61,7 @@ public class HttpSessions {
         sessions.put(userId, session);      // UserID -> Session (중복 방지용)
         idToUser.put(randomSid, userId);    // SID -> UserID (조회용)
 
-        logger.info("🔑 새 세션 발급 완료: UserID = {}, SID(UUID) = {}", userId, randomSid);
+        logger.info("새 세션 발급 완료: UserID = {}, SID(UUID) = {}", userId, randomSid);
         return session;
     }
 

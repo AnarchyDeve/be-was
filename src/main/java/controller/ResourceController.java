@@ -3,6 +3,7 @@ package controller;
 import http.HttpRequest;
 import http.HttpResponse;
 import http.HttpSession;
+import http.HttpStatus;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +52,11 @@ public class ResourceController implements Controller {
 
             if (!file.exists()) {
                 logger.error("파일을 찾을 수 없습니다: {}", file.getAbsolutePath());
-                // 파일이 없으면 ViewResolver가 404 에러 페이지를 찾도록 유도
-                return "/404.html";
+                // 1. 여기서 바로 404 전송
+                byte[] errorBody = "<h1>404 Not Found</h1>".getBytes(); // 혹은 404용 파일 읽기
+                response.setStatus(HttpStatus.NOT_FOUND);
+                response.send(errorBody);
+                return null; // 바로 끝냄
             }
 
             // 1. 원본 HTML 파일 내용 읽기
@@ -74,8 +78,11 @@ public class ResourceController implements Controller {
             return null;
 
         } catch (IOException e) {
-            logger.error("index.html 렌더링 중 입출력 오류 발생: {}", e.getMessage());
-            return "/500.html";
+            logger.error("서버 오류 발생: {}", e.getMessage());
+            // 2. 여기서 바로 500 전송
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+            response.send("<h1>500 Internal Server Error</h1>".getBytes());
+            return null;
         }
     }
 

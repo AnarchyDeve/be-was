@@ -34,7 +34,7 @@ public class HttpRequest {
 
                 // 쿠키 처리는 HttpCookies에게 위임
                 if (lowerLine.startsWith("cookie:")) {
-                    this.httpCookies = new HttpCookies(line.split(":")[1].trim());
+                    this.httpCookies = new  HttpCookies(line.split(":")[1].trim());
                 }
             }
 

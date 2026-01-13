@@ -1,47 +1,54 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="../reset.css" rel="stylesheet" />
     <link href="../global.css" rel="stylesheet" />
-  </head>
-  <body>
-    <div class="container">
-      <header class="header">
-        <a href="/main"><img src="../img/signiture.svg" /></a>
+    <title>댓글 작성</title>
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <a href="/index.html"><img src="../img/signiture.svg" alt="logo" /></a>
         <ul class="header__menu">
-          <li class="header__menu__item">
-            <a class="btn btn_contained btn_size_s" href="/article">글쓰기</a>
-          </li>
-          <li class="header__menu__item">
-            <button id="logout-btn" class="btn btn_ghost btn_size_s">
-              로그아웃
-            </button>
-          </li>
+            <li class="header__menu__item">
+                <a class="btn btn_contained btn_size_s" href="/article">글쓰기</a>
+            </li>
+            <li class="header__menu__item">
+                <a class="btn btn_ghost btn_size_s" href="/user/logout">로그아웃</a>
+            </li>
         </ul>
-      </header>
-      <div class="page">
-        <h2 class="page-title">댓글 작성</h2>
-        <form class="form">
-          <div class="textfield textfield_size_m">
-            <p class="title_textfield">내용</p>
-            <textarea
-              class="input_textfield"
-              placeholder="글의 내용을 입력하세요"
-              autocomplete="username"
-            ></textarea>
-          </div>
-          <button
-            id="registration-btn"
-            class="btn btn_contained btn_size_m"
-            style="margin-top: 24px"
-            type="button"
-          >
-            작성 완료
-          </button>
+    </header>
+
+    <div class="page">
+        <h2 class="page-title" style="padding: 20px; font-weight: bold; font-size: 24px;">댓글 작성</h2>
+
+        <form class="form" action="/comment" method="post">
+            <div class="textfield textfield_size_m" style="padding: 0 20px;">
+                <p class="title_textfield" style="margin-bottom: 10px; font-weight: bold;">내용</p>
+
+                <textarea
+                        name="contents"
+                        class="input_textfield"
+                        placeholder="댓글 내용을 입력하세요"
+                        style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #dbdbdb; border-radius: 4px;"
+                        required
+                ></textarea>
+            </div>
+
+            <div style="padding: 0 20px;">
+                <button
+                        id="registration-btn"
+                        class="btn btn_contained btn_size_m"
+                        style="margin-top: 24px; width: 100%;"
+                        type="submit"
+                >
+                    작성 완료
+                </button>
+            </div>
         </form>
-      </div>
     </div>
-  </body>
+</div>
+</body>
 </html>

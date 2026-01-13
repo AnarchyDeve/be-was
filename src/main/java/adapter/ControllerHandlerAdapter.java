@@ -4,6 +4,8 @@ import controller.Controller;
 import http.HttpRequest;
 import http.HttpResponse;
 
+import java.io.IOException;
+
 public class ControllerHandlerAdapter implements HandlerAdapter {
 
     @Override
@@ -12,7 +14,7 @@ public class ControllerHandlerAdapter implements HandlerAdapter {
     }
 
     @Override
-    public String handle(HttpRequest request, HttpResponse response, Object handler) {
+    public String handle(HttpRequest request, HttpResponse response, Object handler) throws IOException {
         Controller controller = (Controller) handler;
         return controller.process(request, response);
     }

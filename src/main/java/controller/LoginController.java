@@ -1,6 +1,6 @@
 package controller;
 
-import db.Database;
+import db.UserRepository;
 import http.*;
 import model.User;
 
@@ -11,7 +11,7 @@ public class LoginController implements Controller {
         String password = request.getParameter("password");
 
         // 1. 데이터베이스에서 해당 ID의 유저를 조회합니다.
-        User user = Database.findUserById(userId);
+        User user = UserRepository.findUserById(userId);
 
         // 2. 검증 로직을 단계별로 나눕니다.
 

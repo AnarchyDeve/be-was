@@ -1,6 +1,6 @@
 package controller;
 
-import db.Database;
+import db.UserRepository;
 import http.HttpRequest;
 import http.HttpResponse;
 import model.User;
@@ -25,7 +25,7 @@ public class UserCreateController implements Controller {
         );
 
         // 2. 비즈니스 로직 수행: 데이터베이스에 유저 저장
-        Database.addUser(user);
+        UserRepository.addUser(user);
         logger.info("새로운 회원가입 성공: {}", user.getUserId());
 
         // 3. 작업 완료 후 이동할 논리적인 뷰 이름을 반환합니다.

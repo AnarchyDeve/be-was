@@ -1,6 +1,6 @@
 package controller;
 
-import db.Database;
+import db.UserRepository;
 import http.HttpRequest;
 import http.HttpResponse;
 import model.User;
@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Collection;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,7 +36,7 @@ class UserCreateControllerTest {
 
         controller.process(request, response);
 
-        User savedUser = Database.findUserById("joy");
+        User savedUser = UserRepository.findUserById("joy");
 
         assertThat(savedUser).isNotNull();
         assertThat(savedUser.getUserId()).isEqualTo("joy");
@@ -58,7 +57,7 @@ class UserCreateControllerTest {
         controller.process(new HttpRequest(new ByteArrayInputStream(request2.getBytes())), new HttpResponse(new ByteArrayOutputStream()));
 
         // 2. When: DB에서 전체 유저 목록 가져오기 (Database.findAll()이 있다고 가정)
-        Collection<User> allUsers = Database.findAll();
+        Collection<User> allUsers = UserRepository.findAll();
 
         // 3. Then: AssertJ의 강력한 기능 활용
 

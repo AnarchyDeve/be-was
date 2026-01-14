@@ -13,8 +13,7 @@ public class ViewResolver {
         // 1. 기본 경로 설정
         String path = viewName;
 
-
-// 파일의 끝부분(확장자)을 확인하여 정적 리소스인지 판별합니다.
+        // 파일의 끝부분(확장자)을 확인하여 정적 리소스인지 판별합니다.
         if (path.endsWith(".css") || path.endsWith(".js") || path.contains("/img/")) {
             // 마지막 슬래시(/)를 기준으로 잘라내어 파일명만 가져오거나,
             // 필요 없는 앞부분(/user/)을 유연하게 제거합니다.

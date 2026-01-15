@@ -1,32 +1,30 @@
 package db;
 
 import model.Comment;
-
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CommentRepository {
     private static List<Comment> comments = new ArrayList<>();
+    private static long sequence = 0L; // ID 생성을 위한 시퀀스
 
     public static void addComment(Comment comment) {
+        comment.setId(++sequence); // 댓글 저장 시 고유 ID 부여
         comments.add(comment);
     }
 
     public static List<Comment> findAll() {
-        return comments;
+        return new ArrayList<>(comments);
     }
-/*
-    CREATE TABLE IF NOT EXISTS COMMENT (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            articleId BIGINT NOT NULL,          -- 어떤 게시글에 달린 댓글인지 (ARTICLE.id)
-    writer VARCHAR(50) NOT NULL,        -- 누가 썼는지 (USERS.userId)
-    contents TEXT NOT NULL,             -- 댓글 내용
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    -- 외래키 설정 (데이터 무결성을 위해 권장)
-    FOREIGN KEY (articleId) REFERENCES ARTICLE(id) ON DELETE CASCADE,
-    FOREIGN KEY (writer) REFERENCES USERS(userId)
-            );
-
- */
+    /**
+     * 특정 게시글(Article)의 ID와 일치하는 댓글 리스트만 반환합니다.
+     * SQL의 'SELECT * FROM COMMENT WHERE articleId = ?'와 동일한 역할입니다.
+     */
+    public static List<Comment> findByArticleId(Long articleId) {
+        return comments.stream()
+                .filter(comment -> comment.getArticleId().equals(articleId))
+                .collect(Collectors.toList());
+    }
 }

@@ -25,7 +25,7 @@ public class HandlerMapping {
 
 
         // 3. 게시글 관련 컨트롤러
-        // 💡 버튼에서 설정한 /article 경로를 등록합니다.
+        //  버튼에서 설정한 /article 경로를 등록합니다.
         // 게시글 목록을 보여주거나 글쓰기 폼을 보여주는 역할을 합니다.
         mappings.put("/article", new ArticleController());
         mappings.put("/comment", new CommentController());

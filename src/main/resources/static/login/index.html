@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="../reset.css" rel="stylesheet" />
     <link href="../global.css" rel="stylesheet" />
+    <style>
+        /* 에러 메시지 스타일 */
+        .error-message {
+            color: #ed4956;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none; /* 기본은 숨김 */
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
@@ -24,32 +34,35 @@
         <form class="form" action="/user/login" method="POST">
             <div class="textfield textfield_size_s">
                 <p class="title_textfield">아이디</p>
-                <input
-                        name="userId"
-                        class="input_textfield"
-                        placeholder="아이디를 입력해주세요"
-                        autocomplete="username"
-                />
+                <input name="userId" class="input_textfield" placeholder="아이디를 입력해주세요" required />
             </div>
             <div class="textfield textfield_size_s">
                 <p class="title_textfield">비밀번호</p>
-                <input
-                        name="password"
-                        class="input_textfield"
-                        type="password"
-                        placeholder="비밀번호를 입력해주세요"
-                        autocomplete="current-password"
-                />
+                <input name="password" class="input_textfield" type="password" placeholder="비밀번호를 입력해주세요" required />
             </div>
-            <button
-                    class="btn btn_contained btn_size_m"
-                    style="margin-top: 24px"
-                    type="submit"
-            >
+
+            <p id="error-text" class="error-message"></p>
+
+            <button class="btn btn_contained btn_size_m" style="margin-top: 24px" type="submit">
                 로그인
             </button>
         </form>
     </div>
 </div>
+
+<script>
+    // URL에서 파라미터 추출하는 함수
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const errorText = document.getElementById('error-text');
+
+    if (error === '1') {
+        errorText.innerText = '존재하지 않는 아이디입니다.';
+        errorText.style.display = 'block';
+    } else if (error === '2') {
+        errorText.innerText = '비밀번호가 일치하지 않습니다.';
+        errorText.style.display = 'block';
+    }
+</script>
 </body>
 </html>

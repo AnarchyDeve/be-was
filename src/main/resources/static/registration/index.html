@@ -5,60 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="/reset.css" rel="stylesheet" />
     <link href="/global.css" rel="stylesheet" />
+    <style>
+        .error-message {
+            color: #ed4956;
+            font-size: 12px;
+            margin-top: 12px;
+            display: none;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <header class="header">
         <a href="/"><img src="/img/signiture.svg" /></a>
         <ul class="header__menu">
-            <li class="header__menu__item">
-                <a class="btn btn_contained btn_size_s" href="/login">로그인</a>
-            </li>
-            <li class="header__menu__item">
-                <a class="btn btn_ghost btn_size_s" href="/registration">회원 가입</a>
-            </li>
+            <li class="header__menu__item"><a class="btn btn_contained btn_size_s" href="/login">로그인</a></li>
+            <li class="header__menu__item"><a class="btn btn_ghost btn_size_s" href="/registration">회원 가입</a></li>
         </ul>
     </header>
     <div class="page">
         <h2 class="page-title">회원가입</h2>
-        <form class="form" action="/user/create" method="GET">
+        <form class="form" action="/user/create" method="POST">
             <div class="textfield textfield_size_s">
-                <p class="title_textfield">아이디</p>
-                <input
-                        name="userId"
-                        class="input_textfield"
-                        placeholder="아이디를 입력해주세요"
-                        autocomplete="username"
-                />
+                <p class="title_textfield">아이디 (4자 이상)</p>
+                <input name="userId" class="input_textfield" placeholder="아이디를 입력해주세요" required />
             </div>
             <div class="textfield textfield_size_s">
-                <p class="title_textfield">이름</p>
-                <input
-                        name="name"
-                        class="input_textfield"
-                        placeholder="닉네임을 입력해주세요"
-                />
+                <p class="title_textfield">이름 (4자 이상)</p>
+                <input name="name" class="input_textfield" placeholder="닉네임을 입력해주세요" required />
             </div>
             <div class="textfield textfield_size_s">
-                <p class="title_textfield">비밀번호</p>
-                <input
-                        name="password"
-                        class="input_textfield"
-                        type="password"
-                        placeholder="비밀번호를 입력해주세요"
-                        autocomplete="current-password"
-                />
+                <p class="title_textfield">비밀번호 (4자 이상)</p>
+                <input name="password" class="input_textfield" type="password" placeholder="비밀번호를 입력해주세요" required />
             </div>
-            <button
-                    id="registration-btn"
-                    class="btn btn_contained btn_size_m"
-                    style="margin-top: 24px"
-                    type="submit"
-            >
+
+            <p id="error-text" class="error-message"></p>
+
+            <button id="registration-btn" class="btn btn_contained btn_size_m" style="margin-top: 24px" type="submit">
                 회원가입
             </button>
         </form>
     </div>
 </div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const errorText = document.getElementById('error-text');
+
+    if (error) {
+        errorText.style.display = 'block';
+        if (error === 'length') {
+            errorText.innerText = '아이디, 이름, 비밀번호는 모두 4자 이상이어야 합니다.';
+        } else if (error === 'duplicate_id') {
+            errorText.innerText = '이미 존재하는 아이디입니다.';
+        } else if (error === 'duplicate_name') {
+            errorText.innerText = '이미 사용 중인 이름입니다.';
+        }
+    }
+</script>
 </body>
 </html>

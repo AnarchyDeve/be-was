@@ -1,10 +1,12 @@
 package controller;
 
+import db.ArticleRepository;
 import db.CommentRepository;
+import db.UserRepository;
 import http.HttpRequest;
 import http.HttpResponse;
 import http.HttpSession;
-import http.HttpStatus;
+import model.Article;
 import model.Comment;
 import model.User;
 import org.slf4j.Logger;
@@ -23,108 +25,128 @@ public class ResourceController implements Controller {
     public String process(HttpRequest request, HttpResponse response) {
         String path = request.getPath();
 
-        // 기본 경로 처리
-        if (path.equals("/")) {
-            path = "/index.html";
+        if (path.equals("/") || path.equals("/index.html")) {
+            String indexStr = request.getParameter("index");
+            int currentIndex = (indexStr != null) ? Integer.parseInt(indexStr) : 0;
+            return handleIndexHtml(request, response, currentIndex);
         }
 
-        // index.html 요청일 때만 동적 치환(헤더 메뉴 및 댓글 목록)을 수행합니다.
-        if (path.equals("/index.html")) {
-            return handleIndexHtml(request, response);
-        }
-
-        // 그 외 정적 파일(.css, .img 등)은 경로만 반환하여 ViewResolver가 처리하게 합니다.
         return path;
     }
 
-    /**
-     * index.html 파일을 읽어 동적 요소({{header_menu}}, {{comment_list}})를 치환한 뒤 응답합니다.
-     */
-    private String handleIndexHtml(HttpRequest request, HttpResponse response) {
+    private String handleIndexHtml(HttpRequest request, HttpResponse response, int currentIndex) {
         try {
             File file = new File(STATIC_PATH + "/index.html");
             String html = new String(Files.readAllBytes(file.toPath()), "UTF-8");
 
-            // 1. 헤더 메뉴 치환
             html = html.replace("{{header_menu}}", buildHeaderMenu(request.getSession()));
 
-            // 2. DB에서 댓글 가져오기
-            List<Comment> dbComments = CommentRepository.findAll();
+            List<Article> articles = ArticleRepository.findAll();
+            StringBuilder contentBuilder = new StringBuilder();
 
-            // 3. 💡 새로운 댓글들을 'hidden' 클래스를 넣어서 생성
-            StringBuilder sb = new StringBuilder();
-            for (Comment comment : dbComments) {
-                sb.append("<li class=\"comment__item hidden\">"); // 💡 hidden 추가
-                sb.append("    <div class=\"comment__item__user\">");
-                sb.append("        <img class=\"comment__item__user__img\" src=\"./img/default-profile.png\" />");
-                sb.append("        <p class=\"comment__item__user__nickname\">").append(comment.getWriterName()).append("</p>");
-                sb.append("    </div>");
-                sb.append("    <p class=\"comment__item__article\">").append(comment.getContents()).append("</p>");
-                sb.append("</li>");
+            if (articles.isEmpty()) {
+                contentBuilder.append("<div class='empty-feed'>업로드된 게시물이 없습니다.</div>");
+                html = html.replace("{{prev_disabled}}", "disabled")
+                        .replace("{{next_disabled}}", "disabled")
+                        .replace("{{comment_btn_disabled}}", "disabled")
+                        .replace("{{prev_url}}", "#")
+                        .replace("{{next_url}}", "#")
+                        .replace("{{current_index}}", "0");
+            } else {
+                if (currentIndex < 0) currentIndex = 0;
+                if (currentIndex >= articles.size()) currentIndex = articles.size() - 1;
+
+                Article current = articles.get(currentIndex);
+                User author = UserRepository.findUserById(current.getWriter());
+                String authorProfile = (author != null) ? author.getProfileImagePath() : "/img/profile/basic_profileImage.svg";
+                List<Comment> comments = CommentRepository.findByArticleId(current.getId());
+
+                // --- 게시물 HTML 조립 ---
+                contentBuilder.append("<div class='post'>");
+                contentBuilder.append("  <div class='post__account'>");
+                contentBuilder.append("    <img class='post__account__img' src='").append(authorProfile).append("' />");
+                contentBuilder.append("    <p class='post__account__nickname'>").append(current.getWriter()).append("</p>");
+                contentBuilder.append("  </div>");
+                contentBuilder.append("  <img class='post__img' src='").append(current.getImagePath()).append("' />");
+
+                // 💡 [수정 포인트] 아이콘과 숫자를 가로로 정렬하기 위한 Flexbox 구조
+                contentBuilder.append("  <div class='post__menu'>");
+                contentBuilder.append("    <ul class='post__menu__personal' style='display: flex; list-style: none; padding: 0; margin: 10px 0; gap: 20px;'>");
+
+                // 좋아요 섹션
+                contentBuilder.append("      <li style='display: flex; align-items: center;'>");
+                contentBuilder.append("        <button class='post__menu__btn' onclick='increaseLike()' style='display: flex; align-items: center; background: none; border: none; cursor: pointer; padding: 0; gap: 5px;'>");
+                contentBuilder.append("          <img src='/img/like.svg' style='width: 24px; height: 24px;' />");
+                contentBuilder.append("          <span id='like-count' style='font-size: 14px; font-weight: bold; color: #262626;'>").append(current.getLikeCount()).append("</span>");
+                contentBuilder.append("        </button>");
+                contentBuilder.append("      </li>");
+
+                // 댓글 수 섹션
+                contentBuilder.append("      <li style='display: flex; align-items: center;'>");
+                contentBuilder.append("        <div class='post__menu__btn' style='display: flex; align-items: center; gap: 5px;'>");
+                contentBuilder.append("          <img src='/img/comment.svg' style='width: 24px; height: 24px;' />");
+                contentBuilder.append("          <span style='font-size: 14px; font-weight: bold; color: #262626;'>").append(comments.size()).append("</span>");
+                contentBuilder.append("        </div>");
+                contentBuilder.append("      </li>");
+
+                contentBuilder.append("    </ul>");
+                contentBuilder.append("  </div>");
+
+                contentBuilder.append("  <p class='post__article'>").append(current.getContents()).append("</p>");
+                contentBuilder.append("</div>");
+
+                contentBuilder.append("<ul class='comment'>").append(buildCommentListHtml(comments)).append("</ul>");
+                if (comments.size() > 3) {
+                    contentBuilder.append("<button id='show-all-btn' class='btn btn_ghost btn_size_m'>모든 댓글 보기(").append(comments.size()).append("개)</button>");
+                }
+
+                String prevUrl = "/index.html?index=" + (currentIndex + 1);
+                String nextUrl = "/index.html?index=" + (currentIndex - 1);
+                String prevStatus = (currentIndex < articles.size() - 1) ? "" : "disabled";
+                String nextStatus = (currentIndex > 0) ? "" : "disabled";
+
+                html = html.replace("{{prev_url}}", prevUrl)
+                        .replace("{{next_url}}", nextUrl)
+                        .replace("{{prev_disabled}}", prevStatus)
+                        .replace("{{next_disabled}}", nextStatus)
+                        .replace("{{comment_btn_disabled}}", "")
+                        .replace("{{current_index}}", String.valueOf(currentIndex));
             }
-            html = html.replace("{{comment_list}}", sb.toString());
 
-            // 4. 💡 전체 숨겨진 댓글 개수 계산 (기존 정적 3개 + DB 댓글 수)
-            int totalHiddenCount = 3 + dbComments.size();
-            html = html.replace("{{comment_count}}", String.valueOf(totalHiddenCount));
-
+            html = html.replace("{{main_content}}", contentBuilder.toString());
             response.forwardBody(html.getBytes("UTF-8"));
             return null;
         } catch (IOException e) {
-            logger.error("Error rendering index.html: {}", e.getMessage());
-            response.sendError(HttpStatus.INTERNAL_SERVER_ERROR, "Server Error");
+            logger.error("Error rendering index.html", e);
             return null;
         }
     }
 
-    /**
-     * DB(CommentRepository)에서 댓글 목록을 가져와 HTML 태그 뭉치로 생성합니다.
-     */
-    private String buildCommentListHtml() {
-        // 💡 CommentRepository.findAll()을 통해 DB에 저장된 댓글 리스트를 가져옵니다.
-        List<Comment> comments = CommentRepository.findAll();
+    private String buildCommentListHtml(List<Comment> comments) {
         StringBuilder sb = new StringBuilder();
+        for (Comment c : comments) {
+            User writer = UserRepository.findUserById(c.getUserId());
+            String profilePath = (writer != null) ? writer.getProfileImagePath() : "/img/profile/basic_profileImage.svg";
 
-        for (Comment comment : comments) {
-            sb.append("<li class=\"comment__item\">");
-            sb.append("    <div class=\"comment__item__user\">");
-            sb.append("        <img class=\"comment__item__user__img\" src=\"./img/default-profile.png\" />");
-            // 작성자 이름과 본문을 DB 데이터로 채웁니다.
-            sb.append("        <p class=\"comment__item__user__nickname\">").append(comment.getWriterName()).append("</p>");
-            sb.append("    </div>");
-            sb.append("    <p class=\"comment__item__article\">").append(comment.getContents()).append("</p>");
+            sb.append("<li class='comment__item'>");
+            sb.append("  <div class='comment__item__user'>");
+            sb.append("    <img class='comment__item__user__img' src='").append(profilePath).append("' />");
+            sb.append("    <p class='comment__item__user__nickname'>").append(c.getWriterName()).append("</p>");
+            sb.append("  </div>");
+            sb.append("  <p class='comment__item__article'>").append(c.getContents()).append("</p>");
             sb.append("</li>");
         }
         return sb.toString();
     }
 
-    /**
-     * 로그인 상태에 따라 사용자 이름 또는 로그인 버튼을 반환합니다.
-     */
     private String buildHeaderMenu(HttpSession session) {
-        StringBuilder sb = new StringBuilder();
         User user = (session != null) ? (User) session.getAttribute("user") : null;
-
         if (user != null) {
-            // 로그인 상태: 안녕하세요 이름님 | 글쓰기 | 로그아웃
-            sb.append("<li class=\"header__menu__item\">");
-            sb.append("  <a class=\"btn btn_size_s\" style=\"color: #000; font-weight: bold;\">");
-            sb.append("안녕하세요 ").append(user.getName()).append("님");
-            sb.append("  </a>");
-            sb.append("</li>");
-
-            sb.append("<li class=\"header__menu__item\">");
-            sb.append("  <a class=\"btn btn_contained btn_size_s\" href=\"/article\">글쓰기</a>");
-            sb.append("</li>");
-
-            sb.append("<li class=\"header__menu__item\">");
-            sb.append("  <a class=\"btn btn_ghost btn_size_s\" href=\"/user/logout\">로그아웃</a>");
-            sb.append("</li>");
-        } else {
-            // 미인증 상태: 로그인 | 회원 가입
-            sb.append("<li class=\"header__menu__item\"><a class=\"btn btn_contained btn_size_s\" href=\"/login\">로그인</a></li>");
-            sb.append("<li class=\"header__menu__item\"><a class=\"btn btn_ghost btn_size_s\" href=\"/registration\">회원 가입</a></li>");
+            return "<li class='header__menu__item'><a href='/mypage' style='text-decoration:none; color:inherit; font-weight:bold;'>안녕하세요 " + user.getName() + "님</a></li>" +
+                    "<li class='header__menu__item'><a class='btn btn_contained btn_size_s' href='/article'>글쓰기</a></li>" +
+                    "<li class='header__menu__item'><a class='btn btn_ghost btn_size_s' href='/user/logout'>로그아웃</a></li>";
         }
-        return sb.toString();
+        return "<li class='header__menu__item'><a class='btn btn_contained btn_size_s' href='/login'>로그인</a></li>" +
+                "<li class='header__menu__item'><a class='btn btn_ghost btn_size_s' href='/registration'>회원 가입</a></li>";
     }
 }

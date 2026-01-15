@@ -6,6 +6,7 @@ import db.UserRepository;
 import http.HttpRequest;
 import http.HttpResponse;
 import http.HttpSession;
+import http.HttpStatus;
 import model.Article;
 import model.Comment;
 import model.User;
@@ -22,7 +23,7 @@ public class ResourceController implements Controller {
     private static final String STATIC_PATH = "./src/main/resources/static";
 
     @Override
-    public String process(HttpRequest request, HttpResponse response) {
+    public String process(HttpRequest request, HttpResponse response) throws IOException {
         String path = request.getPath();
 
         if (path.equals("/") || path.equals("/index.html")) {
@@ -31,7 +32,38 @@ public class ResourceController implements Controller {
             return handleIndexHtml(request, response, currentIndex);
         }
 
+        if (path.equals("/mypage") || path.equals("/mypage/index.html")) {
+            return handleMyPage(request, response);
+        }
+
         return path;
+    }
+
+    private String handleMyPage(HttpRequest request, HttpResponse response) throws IOException {
+        HttpSession session = request.getSession();
+        User user = (session != null) ? (User) session.getAttribute("user") : null;
+
+        if (user == null) {
+            response.sendRedirect(HttpStatus.FOUND, "/login/index.html");
+            return null;
+        }
+
+        try {
+            File file = new File(STATIC_PATH + "/mypage/index.html");
+            if (!file.exists()) return "/404.html";
+
+            String html = new String(Files.readAllBytes(file.toPath()), "UTF-8");
+
+            html = html.replace("{{user_name}}", user.getName())
+                    .replace("{{user_profile_image}}", user.getProfileImage())
+                    .replace("{{header_menu}}", buildHeaderMenu(session));
+
+            response.forwardBody(html.getBytes("UTF-8"));
+            return null;
+        } catch (IOException e) {
+            logger.error("Error rendering mypage", e);
+            return null;
+        }
     }
 
     private String handleIndexHtml(HttpRequest request, HttpResponse response, int currentIndex) {
@@ -58,10 +90,9 @@ public class ResourceController implements Controller {
 
                 Article current = articles.get(currentIndex);
                 User author = UserRepository.findUserById(current.getWriter());
-                String authorProfile = (author != null) ? author.getProfileImagePath() : "/img/profile/basic_profileImage.svg";
+                String authorProfile = (author != null) ? author.getProfileImage() : "/img/profile/basic_profileImage.svg";
                 List<Comment> comments = CommentRepository.findByArticleId(current.getId());
 
-                // --- 게시물 HTML 조립 ---
                 contentBuilder.append("<div class='post'>");
                 contentBuilder.append("  <div class='post__account'>");
                 contentBuilder.append("    <img class='post__account__img' src='").append(authorProfile).append("' />");
@@ -69,35 +100,33 @@ public class ResourceController implements Controller {
                 contentBuilder.append("  </div>");
                 contentBuilder.append("  <img class='post__img' src='").append(current.getImagePath()).append("' />");
 
-                // 💡 [수정 포인트] 아이콘과 숫자를 가로로 정렬하기 위한 Flexbox 구조
                 contentBuilder.append("  <div class='post__menu'>");
                 contentBuilder.append("    <ul class='post__menu__personal' style='display: flex; list-style: none; padding: 0; margin: 10px 0; gap: 20px;'>");
-
-                // 좋아요 섹션
                 contentBuilder.append("      <li style='display: flex; align-items: center;'>");
-                contentBuilder.append("        <button class='post__menu__btn' onclick='increaseLike()' style='display: flex; align-items: center; background: none; border: none; cursor: pointer; padding: 0; gap: 5px;'>");
+                contentBuilder.append("        <button class='post__menu__btn' style='display: flex; align-items: center; background: none; border: none; padding: 0; gap: 5px;'>");
                 contentBuilder.append("          <img src='/img/like.svg' style='width: 24px; height: 24px;' />");
-                contentBuilder.append("          <span id='like-count' style='font-size: 14px; font-weight: bold; color: #262626;'>").append(current.getLikeCount()).append("</span>");
+                contentBuilder.append("          <span style='font-size: 14px; font-weight: bold;'>").append(current.getLikeCount()).append("</span>");
                 contentBuilder.append("        </button>");
                 contentBuilder.append("      </li>");
-
-                // 댓글 수 섹션
                 contentBuilder.append("      <li style='display: flex; align-items: center;'>");
                 contentBuilder.append("        <div class='post__menu__btn' style='display: flex; align-items: center; gap: 5px;'>");
                 contentBuilder.append("          <img src='/img/comment.svg' style='width: 24px; height: 24px;' />");
-                contentBuilder.append("          <span style='font-size: 14px; font-weight: bold; color: #262626;'>").append(comments.size()).append("</span>");
+                contentBuilder.append("          <span style='font-size: 14px; font-weight: bold;'>").append(comments.size()).append("</span>");
                 contentBuilder.append("        </div>");
                 contentBuilder.append("      </li>");
-
                 contentBuilder.append("    </ul>");
                 contentBuilder.append("  </div>");
-
                 contentBuilder.append("  <p class='post__article'>").append(current.getContents()).append("</p>");
                 contentBuilder.append("</div>");
 
+                //  [수정] 댓글 목록 출력 (최대 3개)
                 contentBuilder.append("<ul class='comment'>").append(buildCommentListHtml(comments)).append("</ul>");
+
+                //  [추가] 댓글이 3개보다 많으면 '모든 댓글 보기' 버튼 생성
                 if (comments.size() > 3) {
-                    contentBuilder.append("<button id='show-all-btn' class='btn btn_ghost btn_size_m'>모든 댓글 보기(").append(comments.size()).append("개)</button>");
+                    contentBuilder.append("<button id='show-all-btn' class='btn btn_ghost btn_size_m' style='width:100%; text-align:left; padding:10px 0;'>");
+                    contentBuilder.append("모든 댓글 보기(").append(comments.size() - 3 ).append("개)");
+                    contentBuilder.append("</button>");
                 }
 
                 String prevUrl = "/index.html?index=" + (currentIndex + 1);
@@ -124,9 +153,14 @@ public class ResourceController implements Controller {
 
     private String buildCommentListHtml(List<Comment> comments) {
         StringBuilder sb = new StringBuilder();
-        for (Comment c : comments) {
+
+        //  [수정] 최대 3개까지만 반복문 실행
+        int displayCount = Math.min(comments.size(), 3);
+
+        for (int i = 0; i < displayCount; i++) {
+            Comment c = comments.get(i);
             User writer = UserRepository.findUserById(c.getUserId());
-            String profilePath = (writer != null) ? writer.getProfileImagePath() : "/img/profile/basic_profileImage.svg";
+            String profilePath = (writer != null) ? writer.getProfileImage() : "/img/profile/basic_profileImage.svg";
 
             sb.append("<li class='comment__item'>");
             sb.append("  <div class='comment__item__user'>");

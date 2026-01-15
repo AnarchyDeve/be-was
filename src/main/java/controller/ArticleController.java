@@ -36,11 +36,11 @@ public class ArticleController implements Controller {
 
         String contents = request.getParameter("contents");
 
-        // 💡 1. DB에 게시글을 먼저 저장하여 생성된 고유 ID를 가져옵니다.
+        //  1. DB에 게시글을 먼저 저장하여 생성된 고유 ID를 가져옵니다.
         Article newArticle = new Article(user.getUserId(), "게시글", contents, null);
         Long articleId = ArticleRepository.save(newArticle);
 
-        // 💡 2. HttpRequest에서 메모리에 저장된 파일 데이터를 꺼냅니다.
+        //  2. HttpRequest에서 메모리에 저장된 파일 데이터를 꺼냅니다.
         byte[] fileData = request.getFileData("imageFile");
         String originalFileName = request.getFileName("imageFile");
 
@@ -52,21 +52,21 @@ public class ArticleController implements Controller {
                 extension = originalFileName.substring(originalFileName.lastIndexOf("."));
             }
 
-            // 💡 3. 파일명을 'article_ID.확장자'로 생성
+            //  3. 파일명을 'article_ID.확장자'로 생성
             String saveFileName = "article_" + articleId + extension;
             File uploadDir = new File(UPLOAD_DIR);
             if (!uploadDir.exists()) uploadDir.mkdirs();
 
             File targetFile = new File(uploadDir, saveFileName);
 
-            // 💡 4. 물리적 파일 저장
+            //  4. 물리적 파일 저장
             try (FileOutputStream fos = new FileOutputStream(targetFile)) {
                 fos.write(fileData);
             }
 
             finalPath = "/img/article/" + saveFileName;
 
-            // 💡 5. 저장된 최종 경로를 DB에 업데이트
+            //  5. 저장된 최종 경로를 DB에 업데이트
             ArticleRepository.updateImagePath(articleId, finalPath);
             logger.info("게시글 이미지 저장 완료: id={}, path={}", articleId, finalPath);
         } else if (articleId != null) {

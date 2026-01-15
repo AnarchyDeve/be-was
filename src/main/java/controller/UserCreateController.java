@@ -3,41 +3,67 @@ package controller;
 import db.UserRepository;
 import http.HttpRequest;
 import http.HttpResponse;
+import http.HttpStatus;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public class UserCreateController implements Controller {
     private static final Logger logger = LoggerFactory.getLogger(UserCreateController.class);
 
     @Override
-    public String process(HttpRequest request, HttpResponse response) {
+    public String process(HttpRequest request, HttpResponse response) throws IOException {
+        if (request.getMethod().equals("GET")) {
+            return "/registration/index.html";
+        }
+        return createUser(request, response);
+    }
+
+    private String createUser(HttpRequest request, HttpResponse response) throws IOException {
         String userId = request.getParameter("userId");
         String password = request.getParameter("password");
         String name = request.getParameter("name");
         String email = request.getParameter("email");
-        String profileImage = request.getParameter("profileImage");
 
-        // 1. 길이 검사 (아이디, 비밀번호, 이름 4글자 이상)
-        if (userId.length() < 4 || password.length() < 4 || name.length() < 4) {
-            return "redirect:/registration/index.html?error=length";
+        // 1. 길이 유효성 검사 (HTML 요구사항인 4자 이상에 맞춤)
+        if (isShort(userId) || isShort(password) || isShort(name)) {
+            response.sendRedirect(HttpStatus.FOUND, "/registration/index.html?error=length");
+            return null;
         }
 
-        // 2. 아이디 중복 검사
+        // 2. 아이디 중복 체크
         if (UserRepository.findUserById(userId) != null) {
-            return "redirect:/registration/index.html?error=duplicate_id";
+            response.sendRedirect(HttpStatus.FOUND, "/registration/index.html?error=duplicate_id");
+            return null;
         }
 
-        // 3. 이름(닉네임) 중복 검사 (UserRepository에 findByName이 있다고 가정)
-        // 만약 없다면 UserRepository.findAll()로 리스트를 받아와서 체크해야 합니다.
-        if (UserRepository.findAll().stream().anyMatch(u -> u.getName().equals(name))) {
-            return "redirect:/registration/index.html?error=duplicate_name";
+        // 3. 닉네임 중복 체크 (UserRepository에 findByName이 있다고 가정하거나 findAll로 체크)
+        if (isDuplicateName(name)) {
+            response.sendRedirect(HttpStatus.FOUND, "/registration/index.html?error=duplicate_name");
+            return null;
         }
 
-        User user = new User(userId, password, name, email, profileImage);
-        UserRepository.addUser(user);
+        // 4. 유저 저장
+        User user = new User(userId, password, name, email, "/img/profile/basic_profileImage.svg");
+        try {
+            UserRepository.addUser(user);
+            logger.info("회원가입 성공: {}", userId);
+        } catch (Exception e) {
+            logger.error("DB 저장 에러", e);
+            return "redirect:/registration/index.html?error=db";
+        }
 
-        logger.info("회원가입 성공: {}", userId);
-        return "redirect:/login/index.html"; // 가입 성공 시 로그인 페이지로
+        return "redirect:/index.html";
+    }
+
+    private boolean isShort(String input) {
+        return input == null || input.trim().length() < 4;
+    }
+
+    private boolean isDuplicateName(String name) {
+        return UserRepository.findAll().stream()
+                .anyMatch(u -> u.getName().equals(name));
     }
 }

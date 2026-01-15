@@ -1,6 +1,5 @@
 package controller;
 
-import db.UserRepository;
 import http.HttpRequest;
 import http.HttpResponse;
 import model.User;
